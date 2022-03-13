@@ -1,6 +1,6 @@
 const digits = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen']
 const tens = ['twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety']
-const places = ['thousand','million','billion','trillion']
+const places = ['thousand','million','billion','trillion', 'quadrillion', 'quintillion', 'sextillion', 'septillion', 'octillion', 'nonillion', 'decillion']
 
 function hundredsToText(n, useAnd = true) {
     // [hundreds, tens, ones]
@@ -21,22 +21,42 @@ function hundredsToText(n, useAnd = true) {
 }
 
 function numToHundredGroups(n) {
-    const nStr = `${n}`
-    const mod = nStr.length % 3
-    return [nStr.substring(0, mod), ...nStr.substring(mod).split(/(\d{3})/)].filter(n => n).map(n => +n)
+    return n.toLocaleString('en').split(',').filter(n => n).map(n => +n)
 }
 
-function numToText(n, useAnd) {
-    return numToHundredGroups(n).reverse().map((n, i) => {
+function checkSafeVal(n) {
+    if (n > Number.MAX_SAFE_INTEGER && !['string', 'bigint'].includes(typeof n)){
+        throw new Error('Numbers larger than 9007199254740991 must be passed in as a string or bigint')
+    }
+}
+
+function numToWords(n, useAnd) {
+    if (!n) return 'zero'
+    checkSafeVal(n)
+    const isNeg = n < 0
+    const abs = isNeg ? -n : n
+    return (isNeg ? 'negative ' : '') + numToHundredGroups(abs).reverse().map((n, i) => {
         if (i) return hundredsToText(n, useAnd) + ' ' + places[i - 1]
         return hundredsToText(n, useAnd)
     }).reverse().join(' ')
 }
 
-function numberLetterCounts(n, useAnd) {
-    return [...Array(n)].reduce((prev, curr, i) => {
-        return prev + numToText(i + 1, useAnd).replace(/[\s-]/g, '').length
-    }, 0)
+function numberLetterCount(n, useAnd) {
+    return numToWords(n, useAnd).replace(/[\s-]/g, '').length
 }
 
-console.log(numberLetterCounts(1000))
+function numberLetterCounts(n, useAnd) {
+    checkSafeVal(n)
+    // Ignore negative
+    const abs = n < 0 ? -n : n
+    let result = 0n
+    for (let i = 0n; ++i <= abs;) {
+        result += BigInt(numberLetterCount(i, useAnd))
+    }
+    return result
+}
+
+console.log(numberLetterCounts(150)) //  1903n
+console.log(numberLetterCounts(-150)) // 1903n
+console.log(numToWords(150)) //  1903n
+console.log(numToWords(-150)) // 1903n
